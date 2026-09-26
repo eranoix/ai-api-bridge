@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm test
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Boot in mock mode and exchange a request
+        # Proves the README's claim: clone, run, get an answer with no provider account
+        # and no credentials file. The key is read from the file mock mode writes, since
+        # parsing the log depends on the logger's format and on stream redirection.
+        run: |
+          set -euo pipefail
+          MOCK_UPSTREAM=1 npm run dev > /tmp/gateway.log 2>&1 &
+          for i in $(seq 1 30); do
+            [ -s data/DEMO_API_KEY.txt ] && break
+            sleep 1
+          done
+          KEY=$(cat data/DEMO_API_KEY.txt 2>/dev/null || true)
+          if [ -z "$KEY" ]; then
+            echo "::error::mock mode did not write a demo key"
+            cat /tmp/gateway.log
+            exit 1
+          fi
+
+          echo "--- OpenAI shape"
+          curl -fsS localhost:8787/v1/chat/completions \
+            -H "authorization: Bearer $KEY" \
+            -H 'content-type: application/json' \
+            -d '{"model":"claude-sonnet-4-5","messages":[{"role":"user","content":"hi"}]}' \
+            | tee /dev/stderr | grep -q '"choices"'
+
+          echo "--- Anthropic shape, same service"
+          curl -fsS localhost:8787/v1/messages \
+            -H "authorization: Bearer $KEY" \
+            -H 'content-type: application/json' \
+            -d '{"model":"claude-sonnet-4-5","max_tokens":64,"messages":[{"role":"user","content":"hi"}]}' \
+            | tee /dev/stderr | grep -q '"content"'
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for credentials
+        run: |
+          set -euo pipefail
+          pattern='-----BEGIN [A-Z ]*PRIVATE KEY-----|sk-ant-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{36}|AKIA[0-9A-Z]{16}|AIza[A-Za-z0-9_-]{35}'
+          if grep -rInE "$pattern" --exclude-dir=.git --exclude-dir=node_modules . ; then
+            echo "::error::credential-shaped string found"; exit 1
+          fi
+          echo clean

@@ -1,0 +1,79 @@
+# Install:
+#   sudo useradd --system --home-dir /opt/ai-api-bridge --shell /usr/sbin/nologin gateway
+#   sudo mkdir -p /opt/ai-api-bridge /var/lib/ai-api-bridge /var/log/ai-api-bridge /etc/ai-api-bridge
+#   sudo chown -R gateway:gateway /opt/ai-api-bridge /var/lib/ai-api-bridge /var/log/ai-api-bridge
+#   sudo chmod 700 /var/lib/ai-api-bridge    # contains .credentials.json
+#   sudo cp deploy/ai-api-bridge.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ai-api-bridge
+#   sudo systemd-analyze security ai-api-bridge   # target: score < 3.0
+
+[Unit]
+Description=AI API Bridge (OpenAI/Anthropic protocol translation)
+Documentation=https://github.com/your-org/ai-api-bridge
+After=network-online.target
+Wants=network-online.target
+# Restart throttle: MUST be in [Unit] (systemd 255 ignores it in [Service]).
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=gateway
+Group=gateway
+WorkingDirectory=/opt/ai-api-bridge
+Environment=NODE_ENV=production
+Environment=NODE_OPTIONS=--enable-source-maps
+EnvironmentFile=/etc/ai-api-bridge/env
+ExecStart=/usr/bin/node /opt/ai-api-bridge/dist/main.js
+
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=15s
+
+LimitNOFILE=65536
+MemoryMax=1G
+TasksMax=512
+CPUQuota=200%
+
+# Sandboxing: the strongest restrictions compatible with running Node, binding
+# to a port, writing to a single data directory and reading credentials.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @mount @debug @cpu-emulation @obsolete
+
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=link-local multicast
+
+# Writable paths (credentials + DB + logs)
+ReadWritePaths=/var/lib/ai-api-bridge /var/log/ai-api-bridge
+
+# Capabilities (none needed for a non-privileged HTTP listener)
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ai-api-bridge
+
+[Install]
+WantedBy=multi-user.target

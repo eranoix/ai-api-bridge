@@ -1,0 +1,16 @@
+# Liveness probe: Restart=on-failure only covers processes that exit, not a hung
+# one. This oneshot probes /readyz and restarts the service when the probe fails;
+# it is driven by the matching .timer.
+#
+# Install:
+#   cp deploy/ai-api-bridge-watchdog.{service,timer} /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now ai-api-bridge-watchdog.timer
+
+[Unit]
+Description=ai-api-bridge liveness watchdog (probe /readyz, restart on hang)
+After=ai-api-bridge.service
+
+[Service]
+Type=oneshot
+# Two attempts, 5s apart, before restarting, so a single blip is not a restart.
+ExecStart=/bin/bash -c 'for i in 1 2; do curl -fsS --max-time 10 http://127.0.0.1:8787/readyz >/dev/null && exit 0; sleep 5; done; echo "readyz failed twice — restarting the gateway"; systemctl restart ai-api-bridge.service'

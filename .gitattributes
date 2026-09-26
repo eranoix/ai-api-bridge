@@ -1,0 +1,3 @@
+# Linguist classes SQL as `data`; the hand-written migrations under
+# src/storage/migrations/ are this service's schema and should count.
+*.sql   linguist-detectable=true

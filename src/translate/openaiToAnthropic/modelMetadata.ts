@@ -1,13 +1,3 @@
-/**
- * Rich metadata for the Claude models we route to.
- *
- * Pricing fields are Anthropic's public API rates (USD per million tokens) as
- * of the model launch. They're shown in the dashboard so the user can estimate
- * what the same volume would cost if they were paying API rates — relevant
- * because the whole point of this proxy is to NOT pay API rates while you have
- * a flat-rate Max subscription.
- */
-
 export interface ModelCapabilities {
   streaming: boolean;
   vision: boolean;
@@ -18,15 +8,12 @@ export interface ModelCapabilities {
 }
 
 export interface ModelMetadata {
-  /** Real Anthropic model id, what we send upstream. */
   id: string;
-  /** Display name shown in the dashboard. */
   displayName: string;
   family: 'opus' | 'sonnet' | 'haiku';
   description: string;
   contextWindowTokens: number;
   maxOutputTokens: number;
-  /** USD per 1M tokens. */
   pricing: {
     inputPerMTok: number;
     outputPerMTok: number;
@@ -34,7 +21,6 @@ export interface ModelMetadata {
     cacheReadPerMTok: number;
   };
   capabilities: ModelCapabilities;
-  /** OpenAI-style names users can request that map to this model. */
   aliases: string[];
 }
 

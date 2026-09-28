@@ -10,7 +10,6 @@ describe('CircuitBreaker', () => {
     await expect(cb.execute(async () => { throw new Error('x'); })).rejects.toThrow();
     expect(await cb.execute(async () => 'ok')).toBe('ok');
     expect(cb.state).toBe('closed');
-    // 2 more failures (counter was reset): still closed.
     await expect(cb.execute(async () => { throw new Error('x'); })).rejects.toThrow();
     await expect(cb.execute(async () => { throw new Error('x'); })).rejects.toThrow();
     expect(cb.state).toBe('closed');

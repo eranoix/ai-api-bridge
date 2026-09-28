@@ -120,8 +120,8 @@ describe('/admin/api/stats (JSON)', () => {
       perKey: Array<{ name: string; requests: number }>;
     };
     expect(body.overall.totalRequests).toBe(3);
-    expect(body.overall.totalInputTokens).toBe(30); // 3 × 10
-    expect(body.overall.totalOutputTokens).toBe(15); // 3 × 5
+    expect(body.overall.totalInputTokens).toBe(30);
+    expect(body.overall.totalOutputTokens).toBe(15);
 
     const gpt = body.latencyByModel.find((m) => m.model === 'gpt-4o');
     expect(gpt?.count).toBe(3);

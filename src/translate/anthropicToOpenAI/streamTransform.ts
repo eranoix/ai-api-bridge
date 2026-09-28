@@ -3,34 +3,16 @@ import { encodeOpenAIChunk, SSE_DONE, SSE_KEEPALIVE } from '../../utils/sse.js';
 import type { AnthropicStreamEvent } from './streamEvents.js';
 
 export interface StreamTransformOptions {
-  /** Client-requested model id (echoed back, not the upstream one). */
   requestedModel: string;
-  /** Override clock for tests. */
   now?: () => number;
-  /** Override the generated chat id for deterministic tests. */
   id?: string;
 }
 
-/**
- * Token usage observed during the stream. Surfaced via `getFinalUsage()` so
- * the route can write a usage_logs row after the stream finishes.
- */
 export interface StreamUsage {
   input_tokens: number;
   output_tokens: number;
 }
 
-/**
- * State machine that translates Anthropic SSE events into raw OpenAI-format
- * SSE strings.
- *
- * Each input event yields zero or more output strings (already framed as
- * `data: {...}\n\n`). The route writes each string to the response body
- * verbatim.
- *
- * NOTE: this is a synchronous generator over events — backpressure comes
- * naturally because the route awaits its own `stream.write()` between events.
- */
 export class StreamTranslator {
   private readonly chatId: string;
   private readonly created: number;
@@ -39,7 +21,6 @@ export class StreamTranslator {
   private usage: StreamUsage = { input_tokens: 0, output_tokens: 0 };
   private upstreamMessageId: string | null = null;
 
-  /** Open tool-use blocks by Anthropic content index. */
   private readonly toolCallSeen = new Map<number, { id: string; name: string }>();
 
   constructor(opts: StreamTransformOptions) {
@@ -48,22 +29,17 @@ export class StreamTranslator {
     this.chatId = opts.id ?? `chatcmpl-${randomId()}`;
   }
 
-  /** Emit at the very start, before any upstream byte arrives. */
   emitInitialChunk(): string {
     return this.formatChunk({
       delta: { role: 'assistant', content: '' },
     });
   }
 
-  /**
-   * Translate one upstream event into zero or more outbound SSE strings.
-   */
   *handleEvent(event: AnthropicStreamEvent): Generator<string> {
     switch (event.type) {
       case 'message_start':
         this.upstreamMessageId = event.message.id;
         this.usage.input_tokens = event.message.usage.input_tokens;
-        // We already emitted the initial role chunk; no extra output here.
         return;
 
       case 'content_block_start':
@@ -105,7 +81,7 @@ export class StreamTranslator {
         return;
 
       case 'content_block_stop':
-        return; // OpenAI has no per-block stop marker.
+        return;
 
       case 'message_delta':
         if (event.usage?.output_tokens) {
@@ -124,8 +100,6 @@ export class StreamTranslator {
         return;
 
       case 'ping':
-        // OpenAI clients (including the official SDK) tolerate SSE comment
-        // lines as no-ops; this also keeps intermediate proxies from idling.
         yield SSE_KEEPALIVE;
         return;
 

@@ -181,8 +181,6 @@ describe('POST /v1/chat/completions — non-streaming MVP', () => {
       system?: unknown;
       messages: unknown[];
     };
-    // An OpenAI `system` message becomes the upstream top-level `system`, with
-    // nothing else added to it (no injected identity block).
     expect(upstream.system).toBe('You are terse.');
     expect(upstream.messages).toHaveLength(1);
   });
@@ -233,7 +231,7 @@ describe('POST /v1/chat/completions — non-streaming MVP', () => {
         authorization: `Bearer ${apiKeyPlaintext}`,
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ model: 'gpt-4o' }), // missing messages
+      body: JSON.stringify({ model: 'gpt-4o' }),
     });
     expect(res.status).toBe(400);
   });

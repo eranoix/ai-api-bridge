@@ -111,8 +111,6 @@ describe('POST /v1/messages — Anthropic-compatible passthrough (non-streaming)
         body: JSON.stringify(requestBody),
       }),
     );
-    // The body reaches the provider verbatim, `system` included: a protocol
-    // gateway does not edit the caller's prompt.
     const upstream = mock.lastMessagesRequest as Record<string, unknown>;
     expect(upstream.model).toBe(requestBody.model);
     expect(upstream.max_tokens).toBe(requestBody.max_tokens);
@@ -139,8 +137,6 @@ describe('POST /v1/messages — Anthropic-compatible passthrough (non-streaming)
     expect(mock.lastMessagesHeaders['authorization']).toBe('Bearer mock-access-initial');
     expect(mock.lastMessagesHeaders['anthropic-version']).toBe('2023-06-01');
     expect(mock.lastMessagesHeaders['anthropic-beta']).toBeUndefined();
-    // The gateway names itself. Asserting this is what keeps a future
-    // change from quietly reintroducing an impersonated user agent.
     expect(mock.lastMessagesHeaders['user-agent']).toMatch(/^ai-api-bridge\//);
   });
 
@@ -251,7 +247,6 @@ describe('POST /v1/messages — streaming passthrough', () => {
       if (done) break;
       text += decoder.decode(value, { stream: true });
     }
-    // Confirm we got the native Anthropic event names — NOT translated to OpenAI chunks.
     expect(text).toMatch(/event: message_start\n/);
     expect(text).toMatch(/event: content_block_delta\n/);
     expect(text).toMatch(/event: message_stop\n/);
@@ -261,8 +256,6 @@ describe('POST /v1/messages — streaming passthrough', () => {
 
 describe('POST /v1/messages/count_tokens', () => {
   it('passes through to upstream and forwards response', async () => {
-    // The mock has no count_tokens responder; verify the route does not crash
-    // and passes upstream's JSON 404 through.
     const res = await app.fetch(
       new Request('http://test.local/v1/messages/count_tokens', {
         method: 'POST',
@@ -273,7 +266,6 @@ describe('POST /v1/messages/count_tokens', () => {
         }),
       }),
     );
-    // Mock returns 404 for unknown routes; the route should pass it through.
     expect([200, 404]).toContain(res.status);
   });
 });

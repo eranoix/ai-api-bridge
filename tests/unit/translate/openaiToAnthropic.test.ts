@@ -32,8 +32,6 @@ describe('translateRequest', () => {
   });
 
   it('respects max_tokens and stop options', () => {
-    // gpt-4o-mini maps to sonnet, which accepts temperature/top_p.
-    // (gpt-4o maps to opus, which doesn't — see the dedicated test below.)
     const req = openaiChatCompletionRequestSchema.parse({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: 'x' }],
@@ -51,7 +49,7 @@ describe('translateRequest', () => {
 
   it('drops temperature/top_p for Opus 4.7 (model rejects sampling params)', () => {
     const req = openaiChatCompletionRequestSchema.parse({
-      model: 'gpt-4o', // maps to claude-opus-4-7
+      model: 'gpt-4o',
       messages: [{ role: 'user', content: 'x' }],
       temperature: 0.5,
       top_p: 0.9,

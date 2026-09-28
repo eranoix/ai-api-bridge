@@ -26,7 +26,6 @@ export interface OpenAIChatCompletionResponse {
 }
 
 export interface TranslateResponseOptions {
-  /** Model the *client* asked for — echoed back unchanged. */
   requestedModel: string;
 }
 

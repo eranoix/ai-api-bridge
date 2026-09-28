@@ -1,8 +1,3 @@
-/**
- * Internal SSH helper for deploy scripts: npx tsx scripts/_ssh-exec.ts "<command>"
- * Env: SSH_HOST and SSH_PASS required; SSH_USER (default root), SSH_PORT (default 22).
- * Streams output live and exits with the remote command's exit code.
- */
 import { Client } from 'ssh2';
 
 import { readFileSync } from 'node:fs';

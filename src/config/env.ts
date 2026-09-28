@@ -23,9 +23,6 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().default(''),
   ADMIN_TOKEN: z.string().default(''),
 
-  // Answer from an in-process canned upstream instead of calling a
-  // provider. Lets the gateway be run with no account and no
-  // credentials -- see src/upstream/mockDispatcher.ts.
   MOCK_UPSTREAM: z
     .string()
     .default('')

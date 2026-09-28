@@ -1,8 +1,3 @@
-/**
- * Create a new API key:
- *   npx tsx scripts/create-api-key.ts <name> [--rpm <n>] [--tpm <n>] [--daily <n>]
- * The plaintext is printed ONCE and cannot be recovered.
- */
 import { loadEnv } from '../src/config/env.js';
 import { openDb } from '../src/storage/db.js';
 import { ApiKeyStore } from '../src/auth/apiKeyStore.js';

@@ -1,7 +1,3 @@
-/**
- * Errors emitted by the upstream layer.
- */
-
 export class UpstreamError extends Error {
   constructor(
     message: string,

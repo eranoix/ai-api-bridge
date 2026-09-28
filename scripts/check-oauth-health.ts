@@ -1,7 +1,3 @@
-/**
- * OAuth diagnostic CLI; `--refresh` also probes the refresh endpoint.
- * SAFE: does NOT consume any tokens against the chat endpoint.
- */
 import path from 'node:path';
 import { loadEnv } from '../src/config/env.js';
 import { CredentialsStore } from '../src/oauth/credentialsStore.js';

@@ -1,9 +1,3 @@
-/**
- * Revoke an API key by name. Sets `revoked_at` so the key is rejected by the
- * auth middleware from the next request onward.
- *
- *   npx tsx scripts/revoke-api-key.ts <name>
- */
 import { loadEnv } from '../src/config/env.js';
 import { openDb } from '../src/storage/db.js';
 import { ApiKeyStore } from '../src/auth/apiKeyStore.js';

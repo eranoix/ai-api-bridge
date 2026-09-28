@@ -5,11 +5,6 @@ export interface AuthedContext {
   apiKey: ApiKeyRow;
 }
 
-/**
- * Extracts the API key from either `Authorization: Bearer <key>` (OpenAI style)
- * or `x-api-key: <key>` (Anthropic style), validates against the store, and
- * attaches the matched row to the context as `apiKey`.
- */
 export function apiKeyMiddleware(store: ApiKeyStore): MiddlewareHandler {
   return async (c, next) => {
     const key = extractApiKey(c);
@@ -34,7 +29,6 @@ export function apiKeyMiddleware(store: ApiKeyStore): MiddlewareHandler {
     }
 
     c.set('apiKey', row);
-    // Best-effort last-used tracking; never blocks the request.
     try {
       store.markUsed(row.id);
     } catch {

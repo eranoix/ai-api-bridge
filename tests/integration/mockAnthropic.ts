@@ -19,7 +19,6 @@ export interface MockAnthropicHandle {
   close(): Promise<void>;
 }
 
-/** Default SSE script: short text response. */
 export function defaultStreamingScript(): MockSSEEvent[] {
   return [
     {
@@ -39,13 +38,6 @@ export function defaultStreamingScript(): MockSSEEvent[] {
   ];
 }
 
-/**
- * Mock Anthropic server. Implements:
- *  - POST /v1/messages  (chat completions)
- *  - POST /v1/oauth/token (refresh)
- *
- * Bind the server to port 0 so each test gets a unique port.
- */
 export async function startMockAnthropic(): Promise<MockAnthropicHandle> {
   let messagesResponder: (body: unknown) => unknown = (body) => ({
     id: 'msg_mock',
@@ -137,7 +129,6 @@ export async function startMockAnthropic(): Promise<MockAnthropicHandle> {
   return handle as MockAnthropicHandle;
 }
 
-/** Tiny helper for the AddressInfo cast. */
 export function _port(info: AddressInfo | string | null): number {
   if (!info || typeof info === 'string') return 0;
   return info.port;

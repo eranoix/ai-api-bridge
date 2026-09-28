@@ -25,10 +25,6 @@ export class CredentialsStore {
     return assertTokenSet(parsed);
   }
 
-  /**
-   * Write the full credentials file atomically. Never a partial update, so a
-   * crash cannot leave mixed-generation accessToken / refreshToken pairs.
-   */
   async write(tokens: TokenSet): Promise<void> {
     await ensureDir(path.dirname(this.filePath));
     const file: CredentialsFile = { claudeAiOauth: { ...tokens } };

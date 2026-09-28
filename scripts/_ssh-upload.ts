@@ -1,7 +1,3 @@
-/**
- * Internal SFTP upload helper.
- *   SSH_HOST=... SSH_KEY=... npx tsx scripts/_ssh-upload.ts <local> <remote>
- */
 import { readFileSync } from 'node:fs';
 import { Client } from 'ssh2';
 

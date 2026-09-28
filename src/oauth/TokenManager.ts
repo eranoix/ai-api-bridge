@@ -11,13 +11,9 @@ export interface TokenManagerOptions {
   credentialsStore: CredentialsStore;
   refreshClient: RefreshClient;
   logger?: Logger;
-  /** Override clock for tests. */
   now?: () => number;
-  /** Buffer before expiry to refresh. Default: 5 minutes. */
   earlyRefreshMs?: number;
-  /** Tokens valid for longer than this are treated as long-lived (no refresh). */
   longLivedThresholdMs?: number;
-  /** Circuit breaker: opens after N consecutive refresh failures. */
   circuitBreaker?: { threshold: number; resetMs: number };
 }
 
@@ -30,11 +26,6 @@ export interface TokenStatus {
   lastRefreshAt: number | null;
 }
 
-/**
- * Owns the OAuth token lifecycle; the ONLY component allowed to write
- * `.credentials.json`. Guards against refresh-token races with an in-memory
- * SingleFlight, a cross-process lockfile, and a re-read from disk inside the lock.
- */
 export class TokenManager {
   private readonly credentialsStore: CredentialsStore;
   private readonly refreshClient: RefreshClient;
@@ -63,10 +54,6 @@ export class TokenManager {
     });
   }
 
-  /**
-   * Return a valid access token, refreshing transparently if needed.
-   * Safe to call concurrently: concurrent callers share one refresh.
-   */
   async getAccessToken(): Promise<string> {
     const cached = await this.getCached();
     if (this.isTokenFresh(cached)) {
@@ -76,7 +63,6 @@ export class TokenManager {
     return refreshed.accessToken;
   }
 
-  /** Force a refresh on the next call (e.g. after upstream 401). */
   async forceRefresh(): Promise<TokenSet> {
     return this.refreshFlow({ force: true });
   }
@@ -120,7 +106,6 @@ export class TokenManager {
   }
 
   private isTokenFresh(tokens: TokenSet): boolean {
-    // Long-lived tokens (setup-token, 1 year) are always fresh; never refresh them.
     if (this.isLongLived(tokens)) return true;
     return tokens.expiresAt > this.clock() + this.earlyRefreshMs;
   }
@@ -129,13 +114,8 @@ export class TokenManager {
     return this.singleFlight.run(() => this.doRefresh(opts.force ?? false));
   }
 
-  /**
-   * The full refresh dance, protected by the cross-process lockfile.
-   */
   private async doRefresh(force: boolean): Promise<TokenSet> {
     return withLock(this.credentialsStore.path, async () => {
-      // Layer 3: re-read inside the lock; another process may have refreshed
-      // while we were waiting to acquire it.
       const onDisk = await this.credentialsStore.read();
 
       if (!force && this.isTokenFresh(onDisk)) {
@@ -147,7 +127,6 @@ export class TokenManager {
         return onDisk;
       }
 
-      // Long-lived tokens skip refresh unless forced (e.g. forceRefresh after a 401).
       if (!force && this.isLongLived(onDisk)) {
         this.cached = onDisk;
         return onDisk;
@@ -159,9 +138,6 @@ export class TokenManager {
         return this.refreshClient.refresh(onDisk.refreshToken);
       });
 
-      // CRITICAL: persist atomically BEFORE updating in-memory cache. If the
-      // write fails, the next request will re-read the (old) on-disk value
-      // and try again, rather than holding a token we never persisted.
       await this.credentialsStore.write(fresh);
       this.cached = fresh;
       this.lastRefreshAt = this.clock();

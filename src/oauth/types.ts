@@ -1,27 +1,15 @@
-/**
- * Token stored in `.credentials.json` (camelCase, Claude Code convention).
- */
 export interface TokenSet {
   accessToken: string;
   refreshToken: string;
-  /** Epoch millis when accessToken expires. */
   expiresAt: number;
-  /** Optional metadata preserved when reading/writing. */
   scopes?: string[];
   subscriptionType?: string;
 }
 
-/**
- * Shape on disk: `~/.claude/.credentials.json`.
- */
 export interface CredentialsFile {
   claudeAiOauth: TokenSet;
 }
 
-/**
- * Raw response from `POST https://console.anthropic.com/v1/oauth/token`.
- * OAuth standard snake_case.
- */
 export interface OAuthRefreshResponse {
   access_token: string;
   refresh_token: string;

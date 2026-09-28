@@ -10,15 +10,6 @@ const MAX_BODY_BYTES = 25 * 1024 * 1024;
 
 type Vars = { apiKey: ApiKeyRow };
 
-/**
- * Anthropic-compatible endpoints. These exist so that clients using the
- * official `@anthropic-ai/sdk` (or `curl`-style native requests) can hit the
- * proxy by setting `baseURL` and `apiKey` to a `sk-priv-*` value.
- *
- * The body is forwarded upstream verbatim — the gateway only attaches the
- * configured credential and its own identifying headers, then propagates the
- * response (JSON or SSE) back unchanged.
- */
 export function messagesRoutes(ctx: AppContext): Hono<{ Variables: Vars }> {
   const app = new Hono<{ Variables: Vars }>();
   app.use('/v1/messages', apiKeyMiddleware(ctx.apiKeys));
@@ -157,7 +148,6 @@ function handlePassthroughStream(
         );
         statusCode = sc;
         if (sc !== 200) {
-          // Forward the error body verbatim, then exit.
           for await (const chunk of bodyStream) {
             await out.write(chunk);
           }

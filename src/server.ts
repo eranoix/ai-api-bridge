@@ -26,8 +26,6 @@ export function createApp(ctx: AppContext): Hono {
     );
   });
 
-  // CORS for browser-based clients. Only the `/v1/*` API surface needs it;
-  // /admin/* is cookie-authenticated and same-origin only.
   const allowed = getAllowedOrigins(ctx.env);
   if (allowed.length > 0) {
     app.use(

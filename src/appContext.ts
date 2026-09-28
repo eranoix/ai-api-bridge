@@ -13,10 +13,6 @@ import { UsageLogger } from './storage/usageLogger.js';
 import { SlidingWindowLimiter } from './ratelimit/slidingWindow.js';
 import { logger } from './logging/logger.js';
 
-/**
- * Wires together the long-lived singletons used by every request.
- * Built once in `main.ts`, then handed to route factories.
- */
 export interface AppContext {
   env: Env;
   db: Db;
@@ -41,8 +37,6 @@ export async function buildAppContext(env: Env): Promise<AppContext> {
     refreshClient,
     logger: logger.child({ module: 'oauth' }),
   });
-  // Mock upstream is injected at the dispatcher seam the tests use, so routing,
-  // validation, translation, rate limiting and usage accounting still run for real.
   if (env.MOCK_UPSTREAM) {
     logger.warn('MOCK_UPSTREAM is set: replies are canned, no provider is contacted');
   }
@@ -54,9 +48,6 @@ export async function buildAppContext(env: Env): Promise<AppContext> {
       ? createMockDispatcher(env.ANTHROPIC_BASE_URL)
       : undefined,
   });
-  // Mock mode hands whoever just cloned this a working API key, and seeds a
-  // long-lived fake credential file so the real token path (single-flight,
-  // locking, expiry checks) still runs instead of being bypassed.
   if (env.MOCK_UPSTREAM) {
     const credPath = env.CREDENTIALS_PATH;
     if (!existsSync(credPath)) {
@@ -68,8 +59,6 @@ export async function buildAppContext(env: Env): Promise<AppContext> {
             claudeAiOauth: {
               accessToken: 'mock-access-token',
               refreshToken: 'mock-refresh-token',
-              // Far future: mock mode should never attempt a refresh, since
-              // there is no token endpoint to refresh against.
               expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000,
             },
           },
@@ -79,21 +68,14 @@ export async function buildAppContext(env: Env): Promise<AppContext> {
         'utf8',
       );
     }
-    // Written to a file as well as logged: parsing a log depends on its format,
-    // colour codes and redirection, while a file lets a script read the key reliably.
     const demoKeyName = 'mock-mode demo key';
     const keyFile = join(dirname(credPath), 'DEMO_API_KEY.txt');
     const existingDemo = apiKeys.list().find((k) => k.name === demoKeyName && !k.revokedAt);
 
     if (existingDemo && existsSync(keyFile)) {
-      // Reuse: `api_keys.name` is UNIQUE, so creating it unconditionally would fail
-      // every boot after the first (and `tsx watch` restarts on every save).
       logger.warn({ keyFile }, 'mock mode: reusing the demo API key already in ' + keyFile);
     } else {
       if (existingDemo) {
-        // The row outlived its key file. Only the hash is stored, so the
-        // plaintext is unrecoverable: drop the row and mint a new one. The
-        // usage rows go first, because the foreign key is enforced.
         db.prepare('DELETE FROM usage_logs WHERE api_key_id = ?').run(existingDemo.id);
         db.prepare('DELETE FROM rate_limit_buckets WHERE api_key_id = ?').run(existingDemo.id);
         db.prepare('DELETE FROM api_keys WHERE id = ?').run(existingDemo.id);
@@ -110,7 +92,6 @@ export async function buildAppContext(env: Env): Promise<AppContext> {
   const usage = new UsageLogger(db);
   const rateLimiter = new SlidingWindowLimiter(db);
 
-  // Periodically clean up old rate-limit buckets so the table doesn't grow unbounded.
   const cleanupInterval = setInterval(() => {
     try {
       const deleted = rateLimiter.cleanup();

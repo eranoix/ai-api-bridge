@@ -3,19 +3,11 @@ import { CircuitBreakerOpenError } from './types.js';
 export type CircuitState = 'closed' | 'open' | 'half-open';
 
 export interface CircuitBreakerOptions {
-  /** Consecutive failures before opening. */
   threshold: number;
-  /** How long to stay open before allowing a probe call. */
   resetMs: number;
-  /** Optional clock for tests. */
   now?: () => number;
 }
 
-/**
- * Minimal circuit breaker: trips after N consecutive failures, blocks all
- * calls during cool-down, allows ONE probe call after cool-down. A success
- * closes the circuit; a failure re-opens it for another cool-down period.
- */
 export class CircuitBreaker {
   private failures = 0;
   private openedAt: number | null = null;
@@ -43,7 +35,6 @@ export class CircuitBreaker {
 
     if (state === 'half-open') {
       if (this.probing) {
-        // Another probe is in flight: fail fast rather than amplify.
         throw new CircuitBreakerOpenError(0);
       }
       this.probing = true;

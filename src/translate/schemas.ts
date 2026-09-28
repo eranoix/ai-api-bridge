@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-// OpenAI Chat Completions input: minimal schema, only what we forward; permissive on unknowns.
-
 export const openaiContentPartSchema = z.union([
   z.object({ type: z.literal('text'), text: z.string() }),
   z.object({

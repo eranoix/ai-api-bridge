@@ -12,7 +12,6 @@ export interface ApiKeyRow {
   createdAt: number;
   lastUsedAt: number | null;
   revokedAt: number | null;
-  /** Epoch ms when this key stops working. NULL = never. */
   expiresAt: number | null;
 }
 
@@ -21,12 +20,10 @@ export interface CreateApiKeyOptions {
   rateLimitRpm?: number;
   rateLimitTpm?: number;
   dailyTokenBudget?: number | null;
-  /** Epoch ms. NULL/undefined = never expires. */
   expiresAt?: number | null;
 }
 
 export interface CreateApiKeyResult {
-  /** The plaintext key — printed once, never stored. */
   plaintext: string;
   row: ApiKeyRow;
 }
@@ -100,10 +97,6 @@ export class ApiKeyStore {
     return rows.map(rowFromRaw);
   }
 
-  /**
-   * Look up an active (non-revoked, enabled, non-expired) key by plaintext.
-   * Pre-filters by key_prefix; expected scale is <50 keys.
-   */
   async findByPlaintext(plaintext: string): Promise<ApiKeyRow | null> {
     const prefix = keyPrefix(plaintext);
     const now = Date.now();
@@ -139,11 +132,6 @@ export class ApiKeyStore {
     return info.changes > 0;
   }
 
-  /**
-   * Update the mutable fields of a key; fields absent from `opts` are left as is.
-   * Plaintext and prefix are immutable (rotation = revoke + create new).
-   * Returns the updated row, or null if no row with that id exists.
-   */
   updateById(
     id: number,
     opts: {

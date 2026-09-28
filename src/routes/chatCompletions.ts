@@ -18,7 +18,6 @@ import {
   UpstreamRateLimitError,
 } from '../upstream/errors.js';
 
-/** Body size cap; nginx enforces the same limit at the edge. */
 const MAX_BODY_BYTES = 25 * 1024 * 1024;
 
 type Vars = { apiKey: ApiKeyRow };
@@ -229,7 +228,6 @@ function handleStreaming(
     let upstreamError: string | undefined;
 
     try {
-      // The initial "role: assistant" chunk before any upstream byte arrives.
       await stream.write(translator.emitInitialChunk());
 
       for await (const event of ctx.anthropic.streamMessage(anthropicReq, { signal: ac.signal })) {
@@ -259,7 +257,6 @@ function handleStreaming(
         upstreamError = 'internal_error';
         log.error({ err }, 'unexpected error during stream');
       }
-      // Write an error-shaped chunk so the client gets a finalizer.
       try {
         await stream.write(
           `data: ${JSON.stringify({

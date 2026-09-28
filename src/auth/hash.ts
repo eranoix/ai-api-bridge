@@ -14,13 +14,7 @@ function scryptAsync(
   });
 }
 
-/**
- * Hash format: scrypt$N$r$p$saltBase64$hashBase64
- * scrypt is built into Node (no native dep); keys are 256-bit random tokens,
- * so brute force is infeasible regardless of hash cost.
- */
-
-const N = 16384; // CPU/memory cost
+const N = 16384;
 const r = 8;
 const p = 1;
 const KEY_LEN = 32;
@@ -53,9 +47,6 @@ export async function verifyApiKey(plaintext: string, encoded: string): Promise<
   return timingSafeEqual(derived, expected);
 }
 
-/**
- * Generate a fresh API key plaintext, formatted as `sk-priv-<base64url>`.
- */
 export function generateApiKey(byteLen = 32): string {
   return `sk-priv-${randomBytes(byteLen).toString('base64url')}`;
 }

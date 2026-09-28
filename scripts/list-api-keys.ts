@@ -1,8 +1,3 @@
-/**
- * List all API keys (active and revoked).
- *
- *   npx tsx scripts/list-api-keys.ts
- */
 import { loadEnv } from '../src/config/env.js';
 import { openDb } from '../src/storage/db.js';
 import { ApiKeyStore } from '../src/auth/apiKeyStore.js';

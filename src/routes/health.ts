@@ -3,7 +3,6 @@ import type { AppContext } from '../appContext.js';
 
 export const healthRoutes = new Hono();
 
-// `/healthz` is the liveness probe: cheap, always 200 if the process is up.
 healthRoutes.get('/healthz', (c) =>
   c.json({
     status: 'ok',
@@ -11,12 +10,6 @@ healthRoutes.get('/healthz', (c) =>
   }),
 );
 
-/**
- * `/readyz` is the readiness probe: also checks downstream dependencies
- * (database open + OAuth credentials present + access token within validity).
- * Returns 503 if any check fails so load balancers / orchestrators stop
- * sending traffic.
- */
 export function readinessRoutes(ctx: AppContext): Hono {
   const app = new Hono();
   app.get('/readyz', async (c) => {
@@ -38,8 +31,6 @@ export function readinessRoutes(ctx: AppContext): Hono {
           : status.circuitBreakerState === 'open'
             ? 'fail'
             : 'ok';
-      // Report the token detail, not just ok/fail: the breaker opens only after three
-      // failed refreshes, so the token can be expired while this check still says 'ok'.
       oauthDetail = {
         accessTokenValid: status.accessTokenValid,
         isLongLived: status.isLongLived,

@@ -18,16 +18,9 @@ export interface AnthropicClientOptions {
   baseUrl: string;
   tokenManager: TokenManager;
   version: string;
-  /** Override dispatcher for tests (mock pool). */
   dispatcher?: Dispatcher;
 }
 
-/**
- * Calls the upstream messages API. Single source of truth for upstream HTTP, so
- * retries, error mapping and header construction exist in exactly one place.
- */
-
-/** Plain async sleep, used by the bounded retry below. */
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 export class AnthropicClient {
@@ -46,8 +39,6 @@ export class AnthropicClient {
         keepAliveTimeout: 60_000,
         keepAliveMaxTimeout: 600_000,
         bodyTimeout: 300_000,
-        // headersTimeout matches bodyTimeout: on a large non-streaming request the
-        // provider sends no header until the whole reply is generated, often past 60s.
         headersTimeout: 300_000,
       });
   }
@@ -56,11 +47,6 @@ export class AnthropicClient {
     return this.requestWith401Retry(body);
   }
 
-  /**
-   * Open a streaming connection to `/v1/messages` and yield parsed SSE events.
-   * 401-retry applies only before bytes are sent (upstream sends the status before
-   * any SSE data). Pass `signal` so a client disconnect aborts the upstream.
-   */
   async *streamMessage(
     body: AnthropicMessagesRequest,
     opts: { signal?: AbortSignal } = {},
@@ -98,7 +84,6 @@ export class AnthropicClient {
     }
 
     if (res.statusCode === 401 && attempt === 0) {
-      // Drain body before retry to free the connection.
       await res.body.text().catch(() => {});
       await this.tokenManager.forceRefresh();
       return this.openStream(body, signal, 1);
@@ -123,11 +108,6 @@ export class AnthropicClient {
     return res.body;
   }
 
-  /**
-   * Performs the upstream request. On 401, force a refresh and retry once
-   * (covers the case where the cached token expired or was revoked while
-   * we were holding it).
-   */
   private async requestWith401Retry(
     body: AnthropicMessagesRequest,
     attempt = 0,
@@ -185,19 +165,11 @@ export class AnthropicClient {
     }
   }
 
-  /**
-   * Generic passthrough: forwards a body verbatim to a path under the upstream
-   * base URL with the configured credential. Returns `body` as parsed JSON
-   * (application/json) or as a raw byte stream (text/event-stream).
-   */
   async passthroughJson(
     method: 'POST' | 'GET',
     upstreamPath: string,
     body?: unknown,
   ): Promise<{ statusCode: number; json: unknown }> {
-    // Bounded retry for TRANSIENT failures only (network errors, 429, 5xx): up to 3
-    // attempts with a short backoff. Other responses return immediately, since
-    // retrying them would only be slower.
     const maxAttempts = 3;
     let lastError: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -209,7 +181,7 @@ export class AnthropicClient {
         }
         return r;
       } catch (err) {
-        lastError = err; // UpstreamNetworkError (network/timeout): transient
+        lastError = err;
         if (attempt < maxAttempts) {
           await sleep(500 * attempt);
           continue;
@@ -255,25 +227,17 @@ export class AnthropicClient {
       try {
         json = JSON.parse(text);
       } catch {
-        // upstream returned non-JSON; passthrough as-is via string
         json = text;
       }
     }
     return { statusCode: res.statusCode, json };
   }
 
-  /**
-   * Open a raw streaming connection — forwards bytes without parsing. Used
-   * for the Anthropic-native `/v1/messages` passthrough so clients using the
-   * official Anthropic SDK get the wire format Anthropic itself emits.
-   */
   async passthroughStream(
     upstreamPath: string,
     body: unknown,
     opts: { signal?: AbortSignal } = {},
   ): Promise<{ statusCode: number; bodyStream: AsyncIterable<Uint8Array> }> {
-    // The client's body goes upstream untouched: this is a protocol
-    // gateway, so the request belongs to the caller.
     return this.streamWith401Retry(upstreamPath, body, opts.signal, 0);
   }
 

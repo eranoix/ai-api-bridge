@@ -13,14 +13,9 @@ import { resolveUpstreamModel } from './models.js';
 import { parseImageUrl } from './multimodal.js';
 
 export interface TranslateOptions {
-  /** Default `max_tokens` if the client did not specify one. */
   defaultMaxTokens: number;
 }
 
-/**
- * Translate an OpenAI chat-completions request body into the upstream
- * messages-API request body.
- */
 export function translateRequest(
   req: OpenAIChatCompletionRequest,
   opts: TranslateOptions,
@@ -39,8 +34,6 @@ export function translateRequest(
 
   if (system) out.system = system;
 
-  // Opus 4.7 (and newer reasoning-style models) reject `temperature` and `top_p`.
-  // Drop them silently: OpenAI clients send `temperature` by default.
   if (!modelRejectsSamplingParams(upstreamModel)) {
     if (typeof req.temperature === 'number') out.temperature = req.temperature;
     if (typeof req.top_p === 'number') out.top_p = req.top_p;
@@ -59,11 +52,6 @@ export function translateRequest(
   return out;
 }
 
-/**
- * Pulls system messages out of the message array and concatenates them into
- * the Anthropic `system` top-level field (Anthropic doesn't allow `system`
- * inside `messages[]`).
- */
 function splitSystem(messages: OpenAIMessage[]): {
   system: string | undefined;
   messages: OpenAIMessage[];
@@ -97,7 +85,6 @@ function toAnthropicMessages(messages: OpenAIMessage[]): AnthropicMessage[] {
 
   for (const m of messages) {
     if (m.role === 'tool') {
-      // OpenAI `tool` role → wrap as tool_result block inside a user turn.
       const block: AnthropicToolResultBlock = {
         type: 'tool_result',
         tool_use_id: m.tool_call_id ?? '',
@@ -117,7 +104,6 @@ function toAnthropicMessages(messages: OpenAIMessage[]): AnthropicMessage[] {
           try {
             parsedArgs = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
           } catch {
-            // If the model emitted invalid JSON, forward raw under a "_raw" key.
             parsedArgs = { _raw: tc.function.arguments };
           }
           blocks.push({ type: 'tool_use', id: tc.id, name: tc.function.name, input: parsedArgs });
@@ -133,7 +119,6 @@ function toAnthropicMessages(messages: OpenAIMessage[]): AnthropicMessage[] {
         content: [{ type: 'text', text: typeof m.content === 'string' ? m.content : '' }],
       });
     } else {
-      // Array content (multimodal): text parts and image_url parts.
       const blocks: AnthropicContentBlock[] = [];
       for (const part of m.content) {
         if (part.type === 'text') {
@@ -170,11 +155,6 @@ function toAnthropicToolChoice(
   return null;
 }
 
-/**
- * Models that reject `temperature` / `top_p` upstream (reasoning-style
- * models, e.g. Opus 4.7). Anthropic returns 400
- * "`temperature` is deprecated for this model." otherwise.
- */
 function modelRejectsSamplingParams(upstreamModel: string): boolean {
   return /^claude-opus-4/i.test(upstreamModel);
 }

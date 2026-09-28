@@ -1,15 +1,5 @@
 import type { AnthropicImageBlock } from '../schemas.js';
 
-/**
- * Convert an OpenAI `image_url.url` value into an Anthropic image block source.
- *
- * Accepted inputs:
- *   - `data:image/<type>;base64,<payload>` — decoded into a base64 source block
- *   - `http(s)://...` — passed through as a `{ type: "url", url }` source
- *
- * Other schemes (file://, ftp, etc.) are rejected — the proxy never reads
- * arbitrary local files on behalf of clients.
- */
 export class MultimodalError extends Error {
   constructor(message: string) {
     super(message);
@@ -65,6 +55,5 @@ function isSupportedImageType(mediaType: string): boolean {
 }
 
 function isValidBase64(s: string): boolean {
-  // Permissive check; the upstream will perform the real validation.
   return /^[A-Za-z0-9+/=\s]+$/.test(s) && s.length > 0;
 }

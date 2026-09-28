@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-// tsc only emits .js from .ts, so non-source files (SQL migrations, etc.)
-// must be copied here after the build.
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 

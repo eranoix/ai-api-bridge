@@ -35,10 +35,6 @@ interface RawRow {
   api_key_id: number;
 }
 
-/**
- * Reads aggregations from `usage_logs`. Sized for single-user traffic, where
- * full table scans are fine.
- */
 export class StatsRepo {
   constructor(private readonly db: Db) {}
 
@@ -72,10 +68,6 @@ export class StatsRepo {
     };
   }
 
-  /**
-   * Latency percentiles per requested_model. Computed in-process — SQLite has
-   * no built-in percentile aggregate. For our scale this is cheap.
-   */
   latencyByModel(sinceMs: number): ModelLatency[] {
     const rows = this.db
       .prepare<[number], RawRow>(

@@ -45,7 +45,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  // Bootstrap-time failure: the logger may not be initialized.
   console.error('fatal startup error:', err);
   process.exit(1);
 });

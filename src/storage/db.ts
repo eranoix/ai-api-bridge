@@ -11,7 +11,6 @@ const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 
 export interface OpenDbOptions {
   dbPath: string;
-  /** Set to true in tests to skip mkdir/migrations. */
   readonly?: boolean;
 }
 

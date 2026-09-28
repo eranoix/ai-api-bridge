@@ -9,11 +9,6 @@ import { renderDashboardShell } from './adminDashboard.js';
 
 const PROCESS_STARTED_AT = Date.now();
 
-/**
- * /admin/*: login flow, dashboard SPA and its JSON API (/admin/api/*).
- * Auth: bearer header OR cookie set by /admin/login. If `ADMIN_TOKEN` is
- * unset, every /admin/* endpoint returns 404.
- */
 export function adminRoutes(ctx: AppContext): Hono {
   const app = new Hono();
 
@@ -65,7 +60,6 @@ export function adminRoutes(ctx: AppContext): Hono {
     );
   });
 
-  // Everything registered below requires admin auth.
   app.use('/admin/*', adminAuth(ctx.env.ADMIN_TOKEN));
 
   app.get('/admin/dashboard', (c) => c.html(renderDashboardShell()));
@@ -220,10 +214,6 @@ export function adminRoutes(ctx: AppContext): Hono {
     return c.json({ ok: true });
   });
 
-  // PATCH /admin/api/keys/:id — edits the limits of an existing key.
-  // Body: { rateLimitRpm?, rateLimitTpm?, dailyTokenBudget?, expiresInDays? }
-  // Absent fields are left alone; `null` (for dailyTokenBudget) drops the
-  // quota. `expiresInDays = 0` drops the expiry, making the key perpetual.
   app.patch('/admin/api/keys/:id', async (c) => {
     const id = Number(c.req.param('id'));
     if (!Number.isFinite(id) || id <= 0) {

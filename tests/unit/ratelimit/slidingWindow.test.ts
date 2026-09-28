@@ -46,7 +46,6 @@ describe('SlidingWindowLimiter — RPM', () => {
     limiter.checkAndReserve(keyId, { rpm: 5, tpm: 100_000 });
     limiter.checkAndReserve(keyId, { rpm: 5, tpm: 100_000 });
 
-    // Move clock 70s ahead: the old bucket falls out of the window.
     clock += 70_000;
 
     for (let i = 0; i < 5; i++) {
@@ -60,7 +59,7 @@ describe('SlidingWindowLimiter — TPM', () => {
   it('blocks when accumulated tokens in window exceed tpm', () => {
     const limiter = new SlidingWindowLimiter(db);
     expect(limiter.checkAndReserve(keyId, { rpm: 100, tpm: 10_000 }).allowed).toBe(true);
-    limiter.addTokens(keyId, 12_000); // overshoots tpm
+    limiter.addTokens(keyId, 12_000);
 
     const res = limiter.checkAndReserve(keyId, { rpm: 100, tpm: 10_000 });
     expect(res.allowed).toBe(false);
@@ -79,7 +78,6 @@ describe('SlidingWindowLimiter — daily budget', () => {
     expect(res.reason).toBe('daily_budget_exceeded');
     expect(res.tokensInDay).toBeGreaterThanOrEqual(1500);
 
-    // Advance > 24h: budget resets.
     clock += 25 * 60 * 60 * 1000;
     const res2 = limiter.checkAndReserve(keyId, { rpm: 100, tpm: 100_000, dailyTokens: 1000 });
     expect(res2.allowed).toBe(true);

@@ -1,13 +1,3 @@
-/**
- * Copies the OAuth credentials file from the standard Claude Code location
- * (`<homedir>/.claude/.credentials.json`) into the project's runtime location
- * (CREDENTIALS_PATH from .env).
- *
- * Run once after `claude login` on the same machine, or after dropping a
- * `claude setup-token` long-lived token into the source file.
- *
- *   npx tsx scripts/bootstrap-credentials.ts
- */
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

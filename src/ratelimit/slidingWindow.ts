@@ -3,33 +3,18 @@ import type { Db } from '../storage/db.js';
 export interface RateLimits {
   rpm: number;
   tpm: number;
-  /** Optional 24h token cap, applied separately. */
   dailyTokens?: number | null;
 }
 
 export interface CheckResult {
   allowed: boolean;
-  /** Requests counted in the rolling window. */
   requestsInWindow: number;
-  /** Tokens counted in the rolling window. */
   tokensInWindow: number;
-  /** Tokens counted in the trailing 24h, if dailyTokens is set. */
   tokensInDay?: number;
-  /** Reason for denial (only when !allowed). */
   reason?: 'rpm_exceeded' | 'tpm_exceeded' | 'daily_budget_exceeded';
-  /** Approx seconds until enough quota frees up. */
   resetSec: number;
 }
 
-/**
- * Fixed-bucket sliding window rate limiter persisted in SQLite.
- *
- * The 60s window is divided into 10s buckets. To check, we sum the
- * `request_count` and `token_count` of all buckets whose `bucket_start`
- * falls within the last 60s. Counters are eventually consistent (a
- * concurrent request between SELECT and UPSERT can let one extra through),
- * which is fine for single-user scale.
- */
 export class SlidingWindowLimiter {
   private readonly db: Db;
   private readonly windowMs: number;
@@ -78,11 +63,6 @@ export class SlidingWindowLimiter {
     `);
   }
 
-  /**
-   * Check whether a new request is permitted, and reserve a request slot
-   * atomically if so. Token usage is recorded separately via `addTokens()`
-   * after the upstream returns.
-   */
   checkAndReserve(apiKeyId: number, limits: RateLimits): CheckResult {
     const now = this.nowFn();
     const windowStart = now - this.windowMs;
@@ -134,7 +114,6 @@ export class SlidingWindowLimiter {
     return txn();
   }
 
-  /** Charge tokens after a successful upstream call. Best-effort. */
   addTokens(apiKeyId: number, tokens: number): void {
     if (tokens <= 0) return;
     const now = this.nowFn();
@@ -146,7 +125,6 @@ export class SlidingWindowLimiter {
     }
   }
 
-  /** Delete buckets older than 1 day. Safe to call periodically. */
   cleanup(): number {
     const cutoff = this.nowFn() - this.dayMs;
     return this.cleanupStmt.run(cutoff).changes;

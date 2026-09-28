@@ -88,8 +88,6 @@ describe('TokenManager — concurrency', () => {
   });
 
   it('only ever passes ONE refresh_token to the upstream (the most recent)', async () => {
-    // The critical anti-race property: even with 50 concurrent callers, we never
-    // make two refresh calls with the SAME stale refresh token.
     const credPath = path.join(tmpDir, 'creds.json');
     await writeExpiredCreds(credPath, 'r-stale');
     const store = new CredentialsStore(credPath);
@@ -112,7 +110,7 @@ describe('TokenManager — long-lived tokens', () => {
         claudeAiOauth: {
           accessToken: 'long-lived-token',
           refreshToken: 'never-used',
-          expiresAt: Date.now() + 90 * 24 * 60 * 60 * 1000, // 90 days
+          expiresAt: Date.now() + 90 * 24 * 60 * 60 * 1000,
         },
       }),
     );
@@ -165,7 +163,7 @@ describe('TokenManager — fresh tokens', () => {
         claudeAiOauth: {
           accessToken: 'still-fresh',
           refreshToken: 'r1',
-          expiresAt: Date.now() + 30 * 60 * 1000, // 30 min from now, well past 5-min buffer
+          expiresAt: Date.now() + 30 * 60 * 1000,
         },
       }),
     );
@@ -186,7 +184,7 @@ describe('TokenManager — fresh tokens', () => {
         claudeAiOauth: {
           accessToken: 'almost-expired',
           refreshToken: 'r1',
-          expiresAt: Date.now() + 60_000, // 1 min from now, inside the 5-min buffer
+          expiresAt: Date.now() + 60_000,
         },
       }),
     );
@@ -219,7 +217,6 @@ describe('TokenManager — circuit breaker', () => {
     for (let i = 0; i < 3; i++) {
       await expect(tm.forceRefresh()).rejects.toThrow();
     }
-    // 4th call should hit the open breaker, not the upstream.
     await expect(tm.forceRefresh()).rejects.toThrow(/circuit_breaker_open/);
     expect(rc.callCount).toBe(3);
 

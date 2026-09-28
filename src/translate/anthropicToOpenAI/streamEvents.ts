@@ -1,8 +1,3 @@
-/**
- * Anthropic streaming event shapes. Only the fields we actually consume are
- * typed — everything else is allowed via the `unknown` index.
- */
-
 import type { AnthropicContentBlock } from '../schemas.js';
 
 export interface AnthMessageStart {

@@ -1,8 +1,3 @@
-/**
- * Server-rendered shell for the admin SPA (Alpine.js), which calls the
- * cookie-authenticated /admin/api/* endpoints. Own module because the HTML/CSS is large.
- */
-
 export function renderDashboardShell(): string {
   return DASHBOARD_HTML;
 }

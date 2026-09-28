@@ -1,35 +1,8 @@
-/**
- * Minimal SSE parser for upstream Anthropic streaming responses.
- *
- * Anthropic's wire format is:
- *
- *   event: message_start
- *   data: {"type":"message_start",...}
- *
- *   event: content_block_delta
- *   data: {"type":"content_block_delta",...}
- *
- *   event: ping
- *   data: {"type":"ping"}
- *
- * We don't use the `event:` field — the `type` inside the JSON payload is the
- * authoritative tag (and matches Anthropic SDK conventions). We yield each
- * parsed `data:` payload's object.
- */
-
 export interface ParsedSSEEvent {
-  /** The `event:` field, if present. May be absent. */
   event?: string;
-  /** The parsed JSON object from `data:`, or the raw string if not JSON. */
   data: unknown;
 }
 
-/**
- * Parse an upstream SSE byte stream into discrete events.
- *
- * `source` is an async iterable of Uint8Array (e.g. undici response body).
- * Yields one event per blank-line-separated record.
- */
 export async function* parseSSEStream(
   source: AsyncIterable<Uint8Array>,
 ): AsyncGenerator<ParsedSSEEvent> {
@@ -40,8 +13,6 @@ export async function* parseSSEStream(
     buffer += decoder.decode(chunk, { stream: true });
 
     let idx: number;
-    // Records are separated by a blank line: \n\n or \r\n\r\n.
-    // Accept either by normalizing CRLF first.
     while ((idx = findRecordBoundary(buffer)) !== -1) {
       const record = buffer.slice(0, idx);
       buffer = buffer.slice(idx).replace(/^(\r?\n){1,2}/, '');
@@ -50,7 +21,6 @@ export async function* parseSSEStream(
     }
   }
 
-  // Flush any trailing record (no terminating blank line).
   if (buffer.trim().length > 0) {
     const parsed = parseRecord(buffer);
     if (parsed) yield parsed;
@@ -94,15 +64,10 @@ function parseRecord(record: string): ParsedSSEEvent | null {
   return out;
 }
 
-/**
- * Encode an OpenAI-style chunk as an SSE record (`data: {...}\n\n`).
- */
 export function encodeOpenAIChunk(chunk: unknown): string {
   return `data: ${JSON.stringify(chunk)}\n\n`;
 }
 
-/** The terminal marker OpenAI clients expect. */
 export const SSE_DONE = 'data: [DONE]\n\n';
 
-/** SSE comment line: clients ignore it but proxies see traffic. */
 export const SSE_KEEPALIVE = ': keepalive\n\n';

@@ -143,7 +143,6 @@ describe('POST /v1/chat/completions — streaming', () => {
     const records = await readSSE(res);
     const payloads = records.map(parseData).filter((d) => d !== null);
 
-    // First data chunk: role assistant (initial chunk we synthesize)
     const first = payloads[0] as { choices: Array<{ delta: { role: string } }> };
     expect(first.choices[0]?.delta.role).toBe('assistant');
 
@@ -198,7 +197,6 @@ describe('POST /v1/chat/completions — streaming', () => {
         }),
       }),
     );
-    // Drain so the route fully initiates and reaches the mock.
     await readSSE(res);
     expect((mock.lastMessagesRequest as { stream?: boolean }).stream).toBe(true);
   });
@@ -229,8 +227,6 @@ describe('POST /v1/chat/completions — streaming', () => {
   });
 
   it('chunks arrive progressively (not buffered to the end)', async () => {
-    // Crank up delay between events to verify chunks come out as they arrive,
-    // not all at once after the upstream finishes.
     mock.setStreamingScript(defaultStreamingScript(), { delayMs: 40 });
     const start = Date.now();
     const res = await app.fetch(
@@ -260,9 +256,7 @@ describe('POST /v1/chat/completions — streaming', () => {
       return last - start;
     })();
 
-    // First byte should arrive well before the script finishes (8 events × 40ms = 320ms).
     expect(firstByteAt - start).toBeLessThan(150);
-    // Total time should be in the same order of magnitude as the script length.
     expect(totalTime).toBeGreaterThan(100);
   });
 });

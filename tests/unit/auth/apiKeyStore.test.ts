@@ -86,8 +86,6 @@ describe('ApiKeyStore', () => {
   });
 
   it('two keys with same prefix collision still resolve correctly', async () => {
-    // Effectively a hash-collision regression: we pre-filter on key_prefix, so
-    // a hypothetical collision must still verify the right one.
     const store = new ApiKeyStore(db);
     const k1 = await store.create({ name: 'a' });
     const k2 = await store.create({ name: 'b' });

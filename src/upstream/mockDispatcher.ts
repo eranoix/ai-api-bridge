@@ -1,9 +1,3 @@
-/**
- * In-process mock upstream, enabled with MOCK_UPSTREAM=1, so the gateway runs with
- * no provider account or credentials. It uses the client's injectable `dispatcher`
- * (the test seam), so only the network call at the far end is replaced.
- */
-
 import { MockAgent, type Dispatcher } from 'undici';
 
 const CANNED_TEXT =
@@ -25,7 +19,6 @@ function messagesResponse(model: string) {
   };
 }
 
-/** Server-sent events mirroring the shape of a real streamed reply. */
 function streamBody(model: string): string {
   const ev = (type: string, data: unknown) =>
     `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -66,11 +59,6 @@ function streamBody(model: string): string {
   );
 }
 
-/**
- * Returns a MockPool, not the MockAgent: the client calls `.request({ path })`
- * with no origin, which a top-level MockAgent cannot route (it surfaces as
- * "upstream unreachable"). MockPool is bound to the origin.
- */
 export function createMockDispatcher(baseUrl: string): Dispatcher {
   const agent = new MockAgent();
   agent.disableNetConnect();
@@ -103,7 +91,5 @@ export function createMockDispatcher(baseUrl: string): Dispatcher {
     })
     .persist();
 
-  // `agent.get()` is typed as Interceptable; it is a MockPool at runtime and
-  // satisfies the Dispatcher contract the client consumes.
   return pool as unknown as Dispatcher;
 }

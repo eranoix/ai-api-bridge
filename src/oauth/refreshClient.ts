@@ -10,12 +10,6 @@ export interface RefreshClient {
   refresh(refreshToken: string): Promise<TokenSet>;
 }
 
-/**
- * POSTs to `https://console.anthropic.com/v1/oauth/token` with
- * `grant_type=refresh_token`. The Anthropic OAuth server **rotates** the
- * refresh_token on every call — the response always contains a NEW
- * refresh_token that callers must persist (otherwise the next refresh fails).
- */
 export class HttpRefreshClient implements RefreshClient {
   constructor(private readonly opts: RefreshClientOptions) {}
 

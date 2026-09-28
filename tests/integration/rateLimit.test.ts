@@ -142,7 +142,6 @@ describe('rate limiting — RPM enforcement', () => {
 
 describe('rate limiting — token billing', () => {
   it('charges tokens after upstream returns, exposing them in TPM accounting', async () => {
-    // Tight TPM via a key with very low budget — mock responds with 1500 tokens.
     mock.setMessagesResponder(() => ({
       id: 'msg',
       type: 'message',
@@ -156,7 +155,6 @@ describe('rate limiting — token billing', () => {
     const r1 = await chatReq();
     expect(r1.status).toBe(200);
 
-    // Next request: TPM (1000) is exceeded by the previous call (1500 total tokens).
     const r2 = await chatReq();
     expect(r2.status).toBe(429);
     const body = (await r2.json()) as { error: { reason: string } };

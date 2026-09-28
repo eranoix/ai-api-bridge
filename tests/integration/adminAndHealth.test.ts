@@ -167,6 +167,6 @@ describe('/admin/* — gated by ADMIN_TOKEN', () => {
     const row = body.data[0]!;
     expect(row.name).toBeDefined();
     expect(row.keyPrefix).toBeDefined();
-    expect(JSON.stringify(row)).not.toContain('scrypt$'); // no hash leak
+    expect(JSON.stringify(row)).not.toContain('scrypt$');
   });
 });

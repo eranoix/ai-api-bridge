@@ -108,7 +108,6 @@ const weatherTool = {
 describe('tool use — non-streaming', () => {
   it('forwards OpenAI tools schema as Anthropic tools with input_schema', async () => {
     mock.setMessagesResponder((body) => {
-      // Mock just echoes a simple text response; we want to inspect the request shape.
       return {
         id: 'msg_1',
         type: 'message',
@@ -243,8 +242,6 @@ describe('tool use — non-streaming', () => {
       messages: Array<{ role: string; content: Array<{ type: string; tool_use_id?: string; id?: string; input?: unknown }> }>;
     };
 
-    // Round-trip in upstream:
-    //   user(text) → assistant(tool_use) → user(tool_result)
     expect(upstream.messages).toHaveLength(3);
     expect(upstream.messages[0]?.role).toBe('user');
     expect(upstream.messages[1]?.role).toBe('assistant');
@@ -318,7 +315,6 @@ describe('tool use — streaming', () => {
           content_block: { type: 'tool_use', id: 'toolu_42', name: 'get_weather', input: {} },
         },
       },
-      // Tool arguments arrive split across multiple deltas
       { event: 'content_block_delta', data: { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '{"loc' } } },
       { event: 'content_block_delta', data: { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: 'ation":"Paris"' } } },
       { event: 'content_block_delta', data: { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: ',"unit":"c"}' } } },
@@ -363,7 +359,6 @@ describe('tool use — streaming', () => {
       })
       .filter((s): s is string => s !== null);
 
-    // Locate the initial tool_call open chunk (carries id + name).
     const toolOpen = payloads
       .map((s) => {
         try {
@@ -393,7 +388,6 @@ describe('tool use — streaming', () => {
       }
     }
     const concatenated = argParts.join('');
-    // First "open" chunk has arguments: "" — that's fine, the rest concatenate.
     expect(JSON.parse(concatenated)).toEqual({ location: 'Paris', unit: 'c' });
 
     const finalChunk = payloads

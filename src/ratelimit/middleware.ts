@@ -2,17 +2,10 @@ import type { Context, MiddlewareHandler } from 'hono';
 import type { ApiKeyRow } from '../auth/apiKeyStore.js';
 import type { SlidingWindowLimiter } from './slidingWindow.js';
 
-/**
- * Hono middleware that enforces per-API-key RPM and TPM limits using a
- * sliding window limiter. Adds `x-ratelimit-*` headers to every response.
- *
- * Must run AFTER `apiKeyMiddleware` so that `c.get('apiKey')` is populated.
- */
 export function rateLimitMiddleware(limiter: SlidingWindowLimiter): MiddlewareHandler {
   return async (c, next) => {
     const apiKey = c.get('apiKey') as ApiKeyRow | undefined;
     if (!apiKey) {
-      // Defensive: auth middleware should have rejected already.
       await next();
       return;
     }
